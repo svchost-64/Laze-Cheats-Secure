@@ -1,0 +1,16 @@
+{
+  "name": "laze-cheats-secure",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "dev": "vercel dev",
+    "check": "node scripts/check-static.mjs",
+    "password:hash": "node scripts/hash-password.mjs"
+  },
+  "dependencies": {
+    "@upstash/ratelimit": "^2.0.0",
+    "@upstash/redis": "^1.35.0"
+  }
+}

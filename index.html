@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laze Cheats | Tienda y Tutoriales</title>
+<link rel="shortcut icon" href="images/go.gif">
+<link rel="stylesheet" href="CSS/site.css">
+</head>
+<body>
+
+<header>
+  <div class="container nav">
+    <a href="#/inicio" class="logo">
+      <img src="images/gooo.gif" alt="">
+      <div>LAZE CHEATS<small>TIENDA OFICIAL</small></div>
+    </a>
+    <nav>
+      <ul id="menu">
+        <li><a href="#/inicio" data-r="inicio">Inicio</a></li>
+        <li><a href="#/comprar" data-r="comprar">Comprar</a></li>
+        <li><a href="#/instalar" data-r="instalar">Instalar</a></li>
+        <li><a href="#/admin" data-r="admin">Admin</a></li>
+      </ul>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="Menú">☰</button>
+  </div>
+</header>
+
+<!-- Inicio -->
+<main class="view active" id="view-inicio">
+  <section class="hero">
+    <div class="container">
+      <div class="badge"><i></i> Tienda activa 24/7</div>
+      <h1>Todo lo que buscas, <br><span>sin complicaciones.</span></h1>
+      <p>Explora nuestros productos, aprende a instalarlos con tutoriales en video y recibe ayuda directa por Discord.</p>
+      <div class="actions">
+        <a class="btn btn-red" href="#/comprar">Comprar ahora ›</a>
+        <a class="btn btn-ghost" href="#/instalar">Ver cómo instalar</a>
+      </div>
+    </div>
+  </section>
+  <section class="cards-band">
+    <div class="container">
+      <div class="grid features-grid">
+        <div class="card"><div class="icon">⚡</div><h3>Rápido y simple</h3><p>Encuentra lo que necesitas en segundos y compra con unos pocos clics.</p></div>
+        <div class="card"><div class="icon">🎬</div><h3>Tutoriales en video</h3><p>Aprende a instalar y usar cada producto paso a paso, para todos los niveles.</p></div>
+        <div class="card"><div class="icon">💬</div><h3>Soporte por Discord</h3><p>Resolvemos tus dudas directamente con nuestro equipo y comunidad.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Productos -->
+<main class="view" id="view-comprar"><section class="page">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>Comprar <span>ahora</span></h2>
+      <p>Haz clic en un producto para ver todos los detalles.</p>
+    </div>
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="🔍 Buscar productos...">
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="grid products-grid" id="productsGrid"></div>
+  </div>
+</section></main>
+
+<!-- Tutoriales -->
+<main class="view" id="view-instalar"><section class="page">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>Cómo <span>instalar</span></h2>
+      <p>Mira los videos y aprende a sacarle el máximo provecho a todo.</p>
+    </div>
+    <div class="tut-layout">
+      <div>
+        <div class="player" id="player"></div>
+        <div class="now" id="now"></div>
+      </div>
+      <div class="playlist" id="playlist"></div>
+    </div>
+  </div>
+</section></main>
+
+<!-- Footer -->
+<a class="discord" href="https://discord.gg/eAKZKm2xGZ" target="_blank" rel="noopener" aria-label="Únete a nuestro Discord">
+  <svg viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-19.32-72.15ZM42.68,68.3c-5.15,0-9.39-4.71-9.39-10.49s4.16-10.49,9.39-10.49,9.44,4.71,9.39,10.49C52.07,63.59,47.88,68.3,42.68,68.3Zm41.74,0c-5.15,0-9.39-4.71-9.39-10.49s4.16-10.49,9.39-10.49,9.44,4.71,9.39,10.49C93.81,63.59,89.62,68.3,84.42,68.3Z"/></svg>
+</a>
+
+<!-- Laze AI · botón + ventana de chat -->
+<button class="ai-fab" id="aiFab" type="button" aria-label="Abrir chat con Laze AI" aria-expanded="false" aria-controls="aiPanel">
+  <svg class="ic-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3.5"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r=".6" fill="#fff"/><circle cx="15" cy="13" r=".6" fill="#fff"/><path d="M9.5 16.2c1.4 1 3.6 1 5 0"/><path d="M2.5 12.5v2M21.5 12.5v2"/></svg>
+  <svg class="ic-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  <span class="ai-dot"></span>
+</button>
+
+<div class="ai-panel" id="aiPanel" role="dialog" aria-label="Chat con Laze AI">
+  <div class="ai-head">
+    <div class="ai-avatar"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3.5"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r=".6" fill="#fff"/><circle cx="15" cy="13" r=".6" fill="#fff"/><path d="M9.5 16.2c1.4 1 3.6 1 5 0"/></svg></div>
+    <div class="ai-title"><b>Laze Cheats GPT</b><small>En línea · Soporte 24/7</small></div>
+    <button class="ai-hbtn" id="aiClear" type="button" title="Limpiar chat" aria-label="Limpiar chat"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button>
+    <button class="ai-hbtn" id="aiMin" type="button" title="Cerrar" aria-label="Cerrar chat"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs" aria-live="polite">
+    <div class="ai-typing" id="aiTyping"><i></i><i></i><i></i></div>
+  </div>
+  <div class="ai-sugs" id="aiSugs">
+    <button class="ai-sug" type="button">¿Qué venden?</button>
+    <button class="ai-sug" type="button">¿Cómo compro?</button>
+    <button class="ai-sug" type="button">Necesito soporte</button>
+  </div>
+  <form class="ai-form" id="aiForm" autocomplete="off">
+    <textarea class="ai-input" id="aiInput" rows="1" maxlength="500" placeholder="Escribe tu pregunta..." aria-label="Mensaje"></textarea>
+    <button class="ai-send" id="aiSend" type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </form>
+  <div class="ai-foot">La IA puede equivocarse. Para compras, confirma por Discord.</div>
+</div>
+
+<!-- Modal producto -->
+<div class="modal" id="productModal">
+  <div class="box">
+    <button class="close" data-close>&times;</button>
+    <div class="detail" id="productDetail"></div>
+  </div>
+</div>
+
+<!-- Modal admin -->
+<main class="view" id="view-admin"><section class="page"><div class="container">
+  <div class="box wide">
+
+    <div id="loginView">
+      <h2>Panel de administración</h2>
+      <p class="hint" style="margin:6px 0 18px">Ingresa tu contraseña para gestionar productos y tutoriales.</p>
+      <div class="form" style="max-width:340px">
+        <div><label>Contraseña</label><input type="password" id="pass" placeholder="••••••••"></div>
+        <button class="btn btn-red" id="loginBtn">Entrar</button>
+      </div>
+    </div>
+
+    <div id="adminView" style="display:none">
+      <h2>Panel de administración</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="prod">Productos</button>
+        <button class="tab" data-tab="tut">Tutoriales</button>
+        <button class="tab" data-tab="cfg">Respaldo</button>
+      </div>
+
+      <!-- Productos -->
+      <div id="tab-prod">
+        <form class="form" id="prodForm">
+          <input type="hidden" id="pId">
+          <div class="row">
+            <div><label>Nombre *</label><input id="pName" required maxlength="80"></div>
+            <div><label>Precio (USD) *</label><input id="pPrice" type="number" step="0.01" min="0" required></div>
+          </div>
+          <div class="row">
+            <div><label>Categoría</label><input id="pCat" placeholder="Ej: Herramientas" list="catList" maxlength="30"><datalist id="catList"></datalist></div>
+            <div><label>Enlace de compra</label><input id="pLink" type="url" placeholder="https://discord.gg/eAKZKm2xGZ"></div>
+          </div>
+          <div class="row">
+            <div><label>Video del producto (YouTube, opcional)</label><input id="pVideo" placeholder="https://www.youtube.com/watch?v=..."></div>
+            <div><label>Tutorial del producto (opcional)</label><select id="pTut"><option value="">— Ninguno: ir a Instalar —</option></select></div>
+          </div>
+          <div><label>Descripción</label><textarea id="pDesc" maxlength="1200"></textarea></div>
+          <div>
+            <label>Imágenes (la primera será la portada)</label>
+            <input id="pImgs" type="file" accept="image/*" multiple>
+            <div class="previews" id="pPreviews"></div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-red" type="submit" id="pSave">Guardar producto</button>
+            <button class="btn btn-ghost" type="button" id="pCancel" style="display:none">Cancelar edición</button>
+          </div>
+        </form>
+        <div class="list" id="adminProducts"></div>
+      </div>
+
+      <!-- Tutoriales -->
+      <div id="tab-tut" style="display:none">
+        <form class="form" id="tutForm">
+          <div class="row">
+            <div><label>Título *</label><input id="tTitle" required maxlength="90"></div>
+            <div><label>Enlace de YouTube *</label><input id="tUrl" required placeholder="https://www.youtube.com/watch?v=..."></div>
+          </div>
+          <div><label>Descripción</label><textarea id="tDesc" maxlength="500" style="min-height:70px"></textarea></div>
+          <input type="hidden" id="tId">
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-red" type="submit" id="tSave">Agregar tutorial</button><button class="btn btn-ghost" type="button" id="tCancel" style="display:none">Cancelar edición</button></div>
+        </form>
+        <div class="list" id="adminTuts"></div>
+      </div>
+
+      <!-- Respaldo -->
+      <div id="tab-cfg" style="display:none">
+        <p class="hint" style="margin-bottom:14px">Los cambios del catálogo se guardan en la base de datos del servidor y se muestran a todos los visitantes. Descarga un respaldo de forma periódica.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px">
+          <button class="btn btn-red" id="exportBtn">⬇ Descargar data.json</button>
+          <label class="btn btn-ghost" style="margin:0;cursor:pointer">⬆ Importar respaldo<input type="file" id="importFile" accept=".json" style="display:none"></label>
+        </div>
+        <p class="hint">Por seguridad, la contraseña del administrador solo se cambia desde la variable ADMIN_PASSWORD_HASH de Vercel.</p>
+        <p style="margin-top:26px"><button class="btn btn-danger btn-sm" id="logoutBtn">Cerrar sesión</button></p>
+      </div>
+    </div>
+  </div>
+</div></section></main>
+
+<div class="toast" id="toast"></div>
+
+<script defer src="js/app.js"></script>
+<script defer src="js/security-client.js"></script>
+<script defer src="js/chat.js"></script>
+
+<script src="yape-pago.js"></script>
+</body>
+</html>
