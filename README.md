@@ -102,8 +102,11 @@ En **Vercel → Project → Firewall**, mantener habilitadas las reglas activas:
 
 - Rate limit de `/api/`: **100 solicitudes por IP cada 60 segundos** (válido para GET y POST). Ajustar basándose en tráfico real; un WAF no reemplaza la validación por usuario/orden en el servidor.
 - Denegar rutas no utilizadas: `/.env`, `/.git`, `/wp-admin`, `/wp-login.php` y `/phpmyadmin`.
+- Denegar desde el hosting los documentos y archivos internos: `/security/`, `/tests/`, `/scripts/`, `/README.md` y `/.github/`. Estas reglas fueron comprobadas contra Preview: la página principal y las APIs públicas siguen disponibles.
 
 Antes de habilitar reglas administradas de bloqueo XSS/SQLi/Bot o desafíos masivos, revisarlas en modo log y verificar que no afecten a clientes legítimos. Los límites por IP pueden afectar redes compartidas. Los mecanismos DDoS básicos de Vercel no requieren desactivar la protección de despliegues.
+
+> **Repositorio público:** las reglas de Vercel solo protegen rutas de la web; cualquier archivo confirmado en GitHub puede seguir siendo consultado directamente allí. Nunca se deben versionar contraseñas ni claves reales, aunque una URL del hosting devuelva 403.
 
 ## Protección frente a modificaciones no autorizadas
 
