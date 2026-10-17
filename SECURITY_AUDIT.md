@@ -1,26 +1,36 @@
-# Auditoría de seguridad - Laze Cheats (16 oct 2026)
+# Laze Cheats — informe y estado de seguridad (16 oct 2026)
 
-**Origen:** ZIP privado entregado por el propietario. No subir el ZIP original porque contiene credenciales comprometidas.
+## Estado en GitHub
 
-## Hallazgos
-- CRÍTICO: clave secreta Groq publicada directamente en `index.html`. Debe REVOCARSE antes del despliegue nuevo.
-- CRÍTICO: contraseña predeterminada del admin incrustada en JS; sesión y cambios guardados en localStorage. Deben implementarse login/sesión HTTP-only y catálogo compartido desde servidor.
-- ALTO: precio de compra y orden construidos por el navegador; PayPal debe crear/capturar pagos en backend y validar monto, referencia, estado y entrega única.
-- ALTO: endpoint Google Apps Script público en `yape-pago.js`. El código de Apps Script no fue entregado; requiere rotar despliegue, secreto compartido y verificar pagos, stock e idempotencia en servidor.
-- ALTO: sin rate-limiting distribuido ni verificación Turnstile de lado servidor.
-- MEDIO: sin CSP, HSTS, detección de cambios ni rama protegida. Bloquear F12 no sirve como protección.
+El código refactorizado de **43 archivos** ya se añadió a la rama `security/auditoria-laze-2026-10-16` de este repositorio **público**. Incluye frontend, APIs de Vercel, fuentes/estáticos, archivo `.env.example` sin valores privados, configuración de cabeceras, pruebas de sintaxis y workflow de seguridad. **Nunca se ha subido el ZIP original que expuso una clave.**
 
-## Solución preparada por separado
-Existe un ZIP de proyecto refactorizado de Vercel preparado en el chat con este usuario (NO se subió aquí el ZIP ni los secretos). Incluye Vercel Functions, Redis Upstash, login scrypt, cookies seguras, Turnstile con siteverify, rate limiting, catálogo centralizado, pagos PayPal servidor, proxy protegido para Apps Script, cabeceras, CI e inventario SHA-256.
+La rama se mantiene en pull request mientras se revisa CI y el comportamiento de pagos, no está validada para producción. Una rama de GitHub no activa Cloudflare ni despliega Vercel automáticamente.
 
-**IMPORTANTE**: Esta rama contiene únicamente este informe. No combinar ni desplegar como si el proyecto reforzado estuviera instalado. Primero importar el ZIP de proyecto seguro y configurar las variables privadas de Vercel. Luego revisar y probar el código Apps Script (pendiente) y Cloudflare (configuración externa).
+## Hallazgos críticos del ZIP original
 
-## Antes de producción
-1. Revocar la key Groq original y cualquier credencial comprometida.
-2. Importar **solo** los archivos del ZIP seguro, nunca el ZIP original.
-3. Configurar variables de entorno, Upstash Redis, Turnstile, PayPal y Apps Script validado.
-4. Habilitar WAF, protección antirrobots, rate limiting perimetral y Cloudflare proxy, verificar que dominio vercel.app no eluda el WAF.
-5. Habilitar 2FA, protección de rama, revisión de PR y alertas de cambios.
-6. Probar autenticación, CORS/origen, CAPTCHA, 429, pago repetido, pagos falsos, entrega única y rollback.
+- Una API key de Groq estaba incrustada en `index.html`; **revocar esa credencial inmediatamente**, porque eliminarla de la web nueva no desactiva la anterior.
+- Panel administrador autenticado solo en JavaScript, contraseña predefinida y datos en localStorage.
+- Precio/ordenes calculadas en frontend sin verificación del proveedor en backend.
+- Integración de Google Apps Script pública: código externo NO auditado.
+- Sin defensa WAF/anti-DDoS, rate limiting server-side ni MFA/GitHub branch protection.
 
-**Estado:** auditoría estática + paquete de código, no pentest de producción ni despliegue verificado.
+## Cambio de arquitectura
+
+- Backend en `api/` y credenciales solo en variables privadas de Vercel.
+- Contraseña de admin con scrypt y sesiones con cookie HttpOnly/Secure/SameSite.
+- Catálogo y rate limiting compartidos con Upstash Redis.
+- Turnstile verificado en servidor y validación de origen.
+- PayPal create/capture en backend con importe generado de datos de servidor y validación de captura.
+- Integración Yape con proxy de backend y `APPS_SCRIPT_SHARED_SECRET`; esto **no asegura el Apps Script remoto sin cambiarlo**.
+- Cabeceras y CSP en `vercel.json`. Hashes en `security/manifest.sha256`, escáner estático y workflow CI de dependencias.
+
+## Antes de fusionar y desplegar
+
+1. Solucionar cualquier fallo de GitHub Actions CI, habilitar MFA, protección de main y revisiones.
+2. Revocar key Groq original y otros valores anteriormente publicados.
+3. Configurar Vercel, Upstash Redis, Groq, Turnstile y PayPal por Environment Variables.
+4. Revisar, corregir y republicar Apps Script externo para validar secreto, pagos reales, stock, idempotencia y entregas únicas.
+5. Configurar en Cloudflare DNS proxied, WAF, Bot Management/Turnstile y rate limit por ruta (dependen del plan) y controlar acceso por hostname de Vercel.
+6. Ejecutar pruebas reales en entornos de prueba y ensayo de recuperación/rollback.
+
+**No se ha realizado pentesting externo ni auditado el Apps Script. No aceptar pagos hasta completar estas pruebas.**
