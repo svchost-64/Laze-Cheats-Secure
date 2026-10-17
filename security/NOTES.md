@@ -1,7 +1,13 @@
-# Security notes
-- Hash manifest is a change-detection baseline for CI. It cannot prevent an authorized administrator or compromised GitHub account from changing both files and manifest; enforce protected branches, approvals, 2FA, GitHub alerts and immutable deploy rollbacks.
-- Cloudflare WAF / DNS / DDoS and Vercel Deployment Protection must be configured in their respective dashboards; vercel.json cannot activate those account-level settings.
-- Vercel hostname may bypass Cloudflare proxy. Review production/preview domain access controls.
-- Apps Script source was NOT available for audit. The backend requires APPS_SCRIPT_SHARED_SECRET and sends `authToken`, but the Apps Script handler MUST reject missing/incorrect tokens before handling any action. Revoke the old publicly known endpoint, and deploy an updated protected one.
-- Server now validates PayPal capture status, amount, product ID and stored order. Google Apps Script must also enforce stock and single-use fulfillment atomically.
-- Secure headers use `style-src 'unsafe-inline'` because the existing markup includes inline styles. For stronger CSP, migrate these to CSS classes and use nonces or hashes; consider Trusted Types after removing dynamic innerHTML.
+# Controles y alcance
+
+La documentación operativa está en [`README.md`](../README.md). Estas notas detallan las decisiones de seguridad que deben mantenerse en revisiones.
+
+- **Claves privadas:** nunca publicar claves, tokens, contraseñas, secretos de cookies o URLs privadas de integraciones dentro del frontend, de `data.json`, de `README.md` ni de los logs. Los identificadores públicos de Turnstile y PayPal son excepciones documentadas.
+- **Pagos:** la activación exige flags de entorno explícitos, credenciales válidas y backend remoto verificado. El código fuente del Google Apps Script de Yape no fue suministrado; su seguridad **no** puede afirmarse ni inferirse.
+- **Control de acceso:** la sesión administrativa se firma en el servidor y expira. La verificación de origen, Turnstile y las limitaciones de intentos son controles separados, no sustitutos entre sí.
+- **Estado de órdenes:** Redis es necesario para la persistencia y los bloqueos de pagos. Un almacén en memoria por instancia no ofrece garantías en funciones sin estado.
+- **Protección de WAF:** hay reglas específicas de Vercel para `/api/` y sondeos comunes. Cloudflare DNS/WAF solo puede configurarse con una cuenta y un dominio propio correctamente vinculados.
+- **Integridad de frontend:** `security/manifest.sha256` registra archivos críticos y la CI verifica el manifiesto. Un atacante con permisos de escritura sobre la rama puede cambiar tanto archivos como hashes: mantener revisiones, 2FA y políticas de rama para reducir ese riesgo.
+- **Proveedor externo:** no activar entregas automáticas ni prometer verificación de cobros hasta probar pagos confirmados, reintentos, atomicidad, duplicados y recuperación de errores.
+- **Cabeceras:** el frontend todavía utiliza algunos estilos en línea, por lo que `style-src 'unsafe-inline'` permanece. Migrar esos estilos a archivos CSS antes de endurecer la CSP.
+- **Asistente virtual:** el backend utiliza un proveedor externo para respuestas. No incluye sus credenciales en JavaScript público y requiere Turnstile antes de consultar al proveedor.

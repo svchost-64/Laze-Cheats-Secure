@@ -1,8 +1,12 @@
 import originalData from '../data.json' with {type:'json'};
 import {redis,safeCatalog} from './_security.js';
 export async function getCatalog(){
-  // Read-only seed works without Redis; all privileged state still requires it.
-  if(!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)return safeCatalog(originalData);
+  // Public catalog is safe to serve from the checked-in, immutable seed.
+  // Writes, payment orders, admin login and abuse-sensitive endpoints still
+  // require Redis; never use a local/in-memory store for those operations.
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return safeCatalog(originalData);
+  }
   const data=await redis().get('laze:catalog');
   return safeCatalog(data||originalData);
 }

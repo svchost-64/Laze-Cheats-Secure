@@ -3,6 +3,14 @@ import {json,body,rate,captcha,sameOrigin,redis} from './_security.js';
 import {productById} from './_catalog.js';
 
 const scriptActions=new Set(['claim','paypal_stock','paypal_claim']);
+const scriptConfigured=()=>/^[A-Za-z0-9_-]{32,}$/.test(process.env.APPS_SCRIPT_SHARED_SECRET||'') &&
+  /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(process.env.PAYMENTS_SCRIPT_URL||'');
+const verifyConfigured=()=>Boolean(process.env.TURNSTILE_SITE_KEY && process.env.TURNSTILE_SECRET_KEY && process.env.TURNSTILE_ALLOWED_HOSTNAMES);
+const yapeEnabled=()=>process.env.ENABLE_YAPE_PAYMENTS==='true' && scriptConfigured() && verifyConfigured();
+const paypalEnabled=()=>process.env.ENABLE_PAYPAL_PAYMENTS==='true' && scriptConfigured() && verifyConfigured() &&
+  Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) &&
+  ['sandbox','live'].includes(process.env.PAYPAL_MODE) &&
+  (process.env.PAYPAL_MODE!=='live' || process.env.ENABLE_LIVE_PAYMENTS==='true');
 const orderKey=(channel,id)=>`laze:order:${channel}:${id}`;
 const penPerUsd=()=>{
   const x=Number(process.env.PAYPAL_PEN_PER_USD||3.75);
@@ -50,9 +58,14 @@ export default async function handler(req,res){
   if(!sameOrigin(req))return json(res,403,{message:'Origen inválido'});
   try{
     const b=body(req,5500);
+    if(!['prepare_yape','claim_yape','paypal_stock','paypal_create','paypal_capture'].includes(b.action))return json(res,400,{message:'Acción desconocida'});
+    // Reject disabled gateways before contacting Redis or displaying payment instructions.
+    if((b.action==='prepare_yape'||b.action==='claim_yape') && !yapeEnabled())
+      return json(res,503,{message:'Yape no disponible temporalmente'});
+    if(b.action.startsWith('paypal_') && !paypalEnabled())
+      return json(res,503,{message:'PayPal no disponible temporalmente'});
     if(!await rate(req,'payments',12,'1 m'))return json(res,429,{message:'Demasiadas solicitudes'});
     if(!await rate(req,'payments-global',500,'1 m','global'))return json(res,429,{message:'Servicio ocupado'});
-    if(!['prepare_yape','claim_yape','paypal_stock','paypal_create','paypal_capture'].includes(b.action))return json(res,400,{message:'Acción desconocida'});
     // Order preparation requires server catalog and server price, not browser price.
     if(b.action==='prepare_yape'){
       if(!await rate(req,'orders-create',5,'1 m'))return json(res,429,{message:'Límite de órdenes'});

@@ -1,49 +1,126 @@
-# Laze Cheats – Seguridad (Vercel)
+# Laze Cheats
 
-Versión reconstruida del ZIP enviado. **No está publicada por defecto**. La aplicación usa Vercel Functions + Upstash Redis + Cloudflare Turnstile; las credenciales privadas no se publican en el navegador.
+Tienda web con catálogo público, tutoriales, panel administrativo y pasarela de pagos. El frontend estático se sirve desde Vercel y las operaciones sensibles se ejecutan en funciones de servidor (`api/`).
 
-## Hallazgos originales
+> **Estado:** la rama de seguridad se utiliza para pruebas en **Preview**. No debe publicarse para cobros reales hasta completar las integraciones, habilitar las verificaciones de GitHub y aprobar las pruebas de pagos. El código por sí solo no garantiza protección total.
 
-1. **CRÍTICO:** clave Groq incrustada en HTML público. **Revocar inmediatamente la clave original**, aunque ya no aparezca en este código.
-2. **CRÍTICO:** contraseña del administrador en JavaScript y login gestionado en `localStorage`. Se reemplazó con verificación scrypt en API, validación Turnstile en login, sesión de 4 horas en cookie HttpOnly/Secure/SameSite y catálogo centralizado en Redis.
-3. **ALTO:** total del pedido, producto y orden controlados por JavaScript. Nuevo backend deriva importes del catálogo almacenado en servidor y captura PayPal desde el servidor con verificación de importe, estado y referencia.
-4. **ALTO NO RESUELTO SIN CÓDIGO EXTERNO:** el Google Apps Script de Yape/entrega de claves no fue entregado. Se elimina su URL del frontend y se añade un secreto de backend, pero **solo se protege si Apps Script verifica ese secreto** y valida la transacción de Yape y el stock sin confiar en el cliente. Desactivar el despliegue anterior y rotar la URL.
-5. No hay base de datos independiente en el ZIP; se añadió Upstash Redis como almacén del catálogo, sesiones sin estado, límite de peticiones y estado de órdenes.
-6. Bloquear F12/inspector no constituye seguridad y fue eliminado.
+## Arquitectura y seguridad
 
-## Puesta en marcha
+| Componente | Control | Archivo o servicio |
+| --- | --- | --- |
+| Frontend | Política CSP, HSTS, anti-iframe, `nosniff`, Referrer-Policy | `vercel.json` |
+| Tráfico web | WAF de Vercel y reglas de limitación de solicitudes | Vercel → Firewall |
+| Catálogo | Validación de tipos, identificadores, URLs e imágenes | `api/_security.js`, `api/_catalog.js` |
+| Administrador | Scrypt, Turnstile, limitación de intentos, cookie firmada `HttpOnly`, `Secure`, `SameSite=Strict` | `api/admin.js` |
+| API | Comprobación de origen, limitación por ruta, errores sin detalles privados | `api/_security.js` |
+| Chat de soporte | Clave de proveedor únicamente en servidor, límite de consultas y Turnstile | `api/chat.js` |
+| Pedidos | Cálculo de importes en servidor, validación de pagos y estado compartido | `api/payments.js` |
+| Persistencia | Redis REST para catálogo editable, pedidos, bloqueos y rate limiting | Upstash Redis |
+| Cambios inesperados | Integridad SHA-256, revisión de secretos, tests y control de rama | `security/manifest.sha256`, `.github/workflows/security.yml` |
 
-1. Conectar este repositorio público a Vercel y usar Node.js **22+** con framework «Other». Instalar dependencias con `npm install` y usar el directorio raíz como proyecto.
-2. Crear instancia Redis en Upstash e instalar la integración o copiar las variables `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` a Vercel.
-3. Configurar Cloudflare Turnstile y registrar el dominio propio y `*.vercel.app` que vaya a usarse, en el widget permitido. Configurar `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_ALLOWED_HOSTNAMES` (hostnames exactos, separados por coma).
-4. Regenerar la clave Groq ya expuesta y configurar `GROQ_API_KEY` solo como **variable privada de servidor en Vercel**, nunca `VITE_`, `NEXT_PUBLIC_` o en `.js`.
-5. Generar contraseña del admin: `npm run password:hash`. Copiar resultado a `ADMIN_PASSWORD_HASH`. Generar `ADMIN_SESSION_SECRET` con `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
-6. Introducir `PAYPAL_CLIENT_ID` (este sí es público), `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE=live` (o `sandbox`) y `PAYPAL_PEN_PER_USD`. Verificar que ambos valores corresponden a la **misma cuenta de PayPal**.
-7. Actualizar el **código fuente** de Apps Script para verificar, antes de cualquier acción: `const d=JSON.parse(e.postData.contents); if (d.authToken !== PropertiesService.getScriptProperties().getProperty('BACKEND_SECRET')) return ContentService.createTextOutput(JSON.stringify({ok:false})).setMimeType(ContentService.MimeType.JSON);` y establecer `BACKEND_SECRET` en Script Properties. Debe hacerse dentro de `doPost`, antes de todo acceso a claves/stock/pagos. Generar un secreto de 32+ caracteres para `APPS_SCRIPT_SHARED_SECRET`, actualizar el script y la URL `PAYMENTS_SCRIPT_URL` en Vercel. **Revocar el despliegue antiguo**. Verificar que Apps Script nunca retorne claves sin confirmar el pago real y marcar uso como atómico.
-8. Configurar dominio y DNS en Cloudflare, proxy «Proxied» para el dominio, WAF administrado, bot protection y reglas por ruta para `/api/chat`, `/api/payments` y `/api/admin`; usar SSL/TLS Full (strict). El plan y las capacidades disponibles afectan las reglas. **El WAF no se activa mediante este repositorio.**
-9. En Vercel habilitar Deployment Protection para previews cuando esté disponible; restringir el dominio `*.vercel.app` si deseas que todo tráfico productivo pase por Cloudflare. Habilitar 2FA en GitHub, branch protection, revisión obligatoria y bloquear pushes directos. Los despliegues de Vercel deben provenir solo de la rama protegida y la CI debe pasar.
-10. Configurar alertas para cambios de dominio/DNS, builds inesperados, picos de tráfico, fallos de login, `429`, pagos inconclusos y discrepancias de stock; mantener un rollback verificado.
+**Limitaciones:** las cabeceras de seguridad y el WAF no sustituyen la revisión de dependencias, las claves de terceros, ni la protección de las cuentas de GitHub/Vercel. Los límites aplicados en el WAF y los realizados con Redis son complementarios.
 
-## Desarrollo y comprobaciones
+## Requisitos
+
+- Cuenta de Vercel con un plan apto para el uso previsto. **Hobby no está destinado a actividad comercial**.
+- Node.js 22 y acceso de escritura al repositorio de GitHub.
+- Upstash Redis con API REST, conectado a los entornos de Vercel correspondientes.
+- Cloudflare Turnstile y una lista de dominios autorizados para cada entorno.
+- Credenciales nuevas del proveedor de chat, la pasarela PayPal y, si se activa Yape, un backend externo de verificación de pagos revisado.
+- Un dominio propio si se quiere utilizar el proxy DNS/WAF de Cloudflare; el subdominio `vercel.app` no pasa por Cloudflare administrado por el propietario.
+
+## Variables de entorno
+
+Copiar **solo los nombres** de `.env.example` al panel de Vercel: **Project → Settings → Environment Variables**. Los valores privados se introducen allí; no se incluyen en código, GitHub, screenshots ni logs.
+
+| Nombre | Uso | ¿Se puede mostrar al navegador? |
+| --- | --- | --- |
+| `UPSTASH_REDIS_REST_URL` | Endpoint REST del almacén compartido | No |
+| `UPSTASH_REDIS_REST_TOKEN` | Autenticación de Redis | **No** |
+| `ADMIN_PASSWORD_HASH` | Hash scrypt del administrador | **No** |
+| `ADMIN_SESSION_SECRET` | Firma de cookies de sesión | **No** |
+| `TURNSTILE_SITE_KEY` | Identificador público del widget | Sí |
+| `TURNSTILE_SECRET_KEY` | Verificación de retos en servidor | **No** |
+| `TURNSTILE_ALLOWED_HOSTNAMES` | Dominios exactos permitidos, separados por coma | Configuración de servidor |
+| `GROQ_API_KEY` | Credencial privada del chat | **No** |
+| `GROQ_MODEL` | Modelo utilizado por el servicio | Puede publicarse, no es secreto |
+| `PAYPAL_CLIENT_ID` | ID público de PayPal | Sí, si la pasarela está habilitada |
+| `PAYPAL_CLIENT_SECRET` | Credencial de acceso PayPal | **No** |
+| `PAYPAL_MODE` | `sandbox` durante pruebas; `live` solo tras auditoría | Configuración de servidor |
+| `PAYPAL_PEN_PER_USD` | Cambio de moneda, validado en backend | Sí |
+| `PAYMENTS_SCRIPT_URL` | URL del Apps Script revisado | **No**, mantener solo en servidor |
+| `APPS_SCRIPT_SHARED_SECRET` | Autenticación del backend Yape/entrega | **No** |
+| `ENABLE_YAPE_PAYMENTS` | `false` hasta aprobar integración de Yape | No |
+| `ENABLE_PAYPAL_PAYMENTS` | `false` hasta aprobar sandbox y entregas | No |
+| `ENABLE_LIVE_PAYMENTS` | `false` por defecto; exige aprobación para pagos live | No |
+
+**El checkout permanece cerrado de forma deliberada** cuando faltan flags, claves, Turnstile o el backend de verificación. No activar las opciones `ENABLE_*` por el simple hecho de haber creado Redis. Debe comprobarse el flujo completo de confirmación y entrega.
+
+Para generar el hash del administrador:
 
 ```bash
-npm install
-npm run check
-npx vercel dev
+npm install --ignore-scripts
+npm run password:hash
 ```
 
-- Comprueba que `/api/config` **solo** devuelva site key pública de Turnstile y client ID público de PayPal, y no secretos.
-- En `/api/admin` GET debe devolver `authenticated:false` sin cookie y `true` solo con cookie válida; el POST `save` debe devolver `401` sin sesión.
-- La IA requiere token Turnstile de un solo uso, rate limiting y `GROQ_API_KEY` del servidor; no funciona hasta configurar todo.
-- Prueba Yape y PayPal en **entorno de prueba** antes de permitir pagos reales; haz pruebas de importe alterado, petición repetida y transacción no capturada.
-- **No se realizaron pruebas de penetración contra servicios reales**, ni se ha comprobado la implementación externa de Apps Script ni de PayPal.
-- El primer catálogo se carga de `data.json`; las modificaciones posteriores del admin se guardan en Redis y no vuelven a escribirse en `data.json`. Asegúrate de tener backup de Redis.
-- No subas `.env.local`, llaves, archivos de respaldo privados ni el ZIP original con secretos a GitHub.
+Para generar el secreto de sesión (el resultado debe quedar solo en Vercel):
 
-## Anti-defacement
+```bash
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+```
 
-La CI compara SHA-256 de archivos estáticos con `security/manifest.sha256`, valida sintaxis, revisa cadenas con formato de claves y ejecuta auditoría de dependencias. Es **detección de cambios**, no garantía de bloqueo. Se completa con 2FA, reglas GitHub protegidas, controles de Vercel y Cloudflare, alertas y rollback.
+Configurar `ADMIN_SESSION_SECRET` como una cadena aleatoria de **32 caracteres o más**, independiente de la contraseña. Rotar ambos valores ante sospechas de compromiso. Los secretos nunca se devuelven desde `/api/config`.
 
-## Pendiente para el propietario
+## Instalación y pruebas
 
-Configuración real de Cloudflare, Vercel y proveedores; auditoría del código fuente Apps Script de Yape/stock/entrega, rotación de la clave Groq comprometida y despliegue de prueba. No dejar en producción el flujo de pagos hasta validar end-to-end.
+```bash
+npm install --ignore-scripts
+npm run check
+npm test
+```
+
+El proyecto usa estructura estática con funciones serverless bajo `api/` y raíz de proyecto como directorio de trabajo. No habilitar un build de frontend distinto sin validarlo previamente. El manifiesto `security/manifest.sha256` registra el contenido aprobado: si se modifican archivos protegidos, **revisar el diff y actualizar los hashes únicamente después de aprobar el cambio**.
+
+### Comprobaciones que deben superar las versiones de prueba
+
+1. `GET /` devuelve HTTP 200 y carga CSS, scripts e imágenes. El catálogo inicial aparece aunque Redis todavía no esté configurado, pero sus operaciones de escritura permanecen bloqueadas.
+2. `GET /api/catalog` devuelve solo catálogo público validado. `GET /api/config` puede exponer site key de Turnstile y client ID de PayPal; **nunca** secretos privados.
+3. `GET /api/admin` sin sesión devuelve `{"authenticated":false}`. Las modificaciones sin cookie válida devuelven 401; las peticiones de otro origen devuelven 403.
+4. `POST /api/payments` rechaza toda acción de Yape y PayPal hasta configurar explícitamente sus flags y dependencias. Una petición POST sin origen legítimo devuelve 403.
+5. Las rutas `/api/` están limitadas por WAF. Las rutas de sondeo `.env`, `.git`, `/wp-admin` y `/phpmyadmin` están denegadas en el WAF configurado.
+6. El script de control de secretos y los tests terminan correctamente. GitHub Actions debe mostrar resultados **verdes**, no solo un deployment `READY`.
+
+### PayPal y Yape: requisitos antes de aceptar dinero real
+
+**PayPal:** utilizar `PAYPAL_MODE=sandbox` durante todas las pruebas; verificar el importe calculado por el servidor, moneda USD, ID de orden, referencia y captura `COMPLETED`. Simular peticiones repetidas, respuestas tardías y caídas del backend. Solo después de auditar stock y entregas habilitar `ENABLE_PAYPAL_PAYMENTS=true`. Para live también se exige `ENABLE_LIVE_PAYMENTS=true` y un plan Vercel compatible.
+
+**Yape / Apps Script:** el Google Apps Script es un sistema **externo a este repositorio** y su código no está auditado. Antes de habilitarlo debe exigir el secreto compartido **antes de procesar cualquier acción**, consultar la transacción real por una fuente de pago fiable, comprobar importe, receptor, fecha, orden y stock; marcar cada pago y clave como usados de forma atómica, evitar entregas duplicadas, limitar intentos y registrar conciliación sin guardar secretos en logs. Revocar la publicación anterior del Apps Script y rotar sus credenciales. Un código de tres dígitos o una captura de pantalla **no son prueba suficiente de pago**.
+
+## Configuración del firewall
+
+En **Vercel → Project → Firewall**, mantener habilitadas las reglas activas:
+
+- Rate limit de `/api/`: **100 solicitudes por IP cada 60 segundos** (válido para GET y POST). Ajustar basándose en tráfico real; un WAF no reemplaza la validación por usuario/orden en el servidor.
+- Denegar rutas no utilizadas: `/.env`, `/.git`, `/wp-admin`, `/wp-login.php` y `/phpmyadmin`.
+
+Antes de habilitar reglas administradas de bloqueo XSS/SQLi/Bot o desafíos masivos, revisarlas en modo log y verificar que no afecten a clientes legítimos. Los límites por IP pueden afectar redes compartidas. Los mecanismos DDoS básicos de Vercel no requieren desactivar la protección de despliegues.
+
+## Protección frente a modificaciones no autorizadas
+
+- Configurar **GitHub → Settings → Branches / Rulesets**: protección de `main`, revisión de PR, impedir force-push y requerir verificaciones CI. Habilitar 2FA o passkeys a los colaboradores.
+- Vincular Vercel a la rama principal protegida; publicar primero en Preview, revisar los logs y promover únicamente versiones probadas.
+- Habilitar alertas de builds/despliegues inesperados, cambios de variables/dominios, aumento de respuestas 401/403/429 y conciliación de pagos.
+- Mantener copias de seguridad de Redis y del código. Ensayar un rollback desde Vercel.
+- Verificar que `security/manifest.sha256` contiene todas las rutas críticas antes de aprobar cambios. No sustituir el manifiesto sin revisión.
+
+## Incidentes y rotación de claves
+
+1. Si una credencial se publicó en GitHub o en el navegador, **revocarla en el proveedor y crear una nueva**. Borrarla del código no invalida las copias públicas o los historiales.
+2. Revocar sesiones administrativas rotando `ADMIN_SESSION_SECRET`; cambiar el hash de contraseña con `npm run password:hash`.
+3. Deshabilitar temporalmente `ENABLE_YAPE_PAYMENTS`, `ENABLE_PAYPAL_PAYMENTS` y `ENABLE_LIVE_PAYMENTS` si hay discrepancias de cobro.
+4. Revisar registros de Vercel, Redis, proveedor de pagos y GitHub. Conservar evidencias sin incluir tokens ni información financiera sensible.
+5. Aplicar la corrección en una rama de revisión, pasar tests, desplegar a Preview y promover tras validarla.
+
+### Limitaciones actuales
+
+El backend externo de Yape, las credenciales de proveedores, la base Redis y las cuentas de administración externas requieren configuración o verificación fuera del repositorio. **No se certifica ausencia absoluta de vulnerabilidades**. El escaneo de secretos identifica patrones habituales, pero no sustituye la rotación de credenciales ni una auditoría independiente de los servicios de terceros.

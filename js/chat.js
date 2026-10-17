@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   LAZE AI · chat con Groq (misma lógica de tu bot de Discord, en JS)
+   Chat de soporte automatizado
    ===================================================================== */
 
 /* La clave y el prompt del sistema viven en /api/chat, no en JS. */
@@ -28,13 +28,13 @@ const AI_CONFIG={cooldownMs:5000,typingMs:800,maxHistory:8};
     msgs.scrollTop = msgs.scrollHeight;
   }
   function welcome(){
-    addMsg('¡Holaa! 👋 Soy Laze Cheats GPT. Coméntame, ¿de qué país eres y qué producto te interesa adquirir?.','bot');
+    addMsg('¡Hola! 👋 Soy el asistente virtual de Laze Cheats. ¿Qué producto te interesa?','bot');
   }
   function setOpen(o){
     panel.classList.toggle('open',o);
     fab.classList.toggle('open',o);
     fab.setAttribute('aria-expanded',o);
-    fab.setAttribute('aria-label',o?'Cerrar chat con Laze AI':'Abrir chat con Laze AI');
+    fab.setAttribute('aria-label',o?'Cerrar chat con el asistente virtual':'Abrir chat con el asistente virtual');
     if(o){fab.classList.add('seen');setTimeout(()=>input.focus(),250)}
   }
 
@@ -74,7 +74,7 @@ const AI_CONFIG={cooldownMs:5000,typingMs:800,maxHistory:8};
       addMsg(reply,'bot');
     }catch(e){
       addMsg('No pude conectar con el servicio. Inténtalo nuevamente o contacta a soporte.','bot',true);
-      console.error('Laze AI:',e);
+      console.error('Asistente virtual:',e);
     }finally{
       busy=false; send.disabled=false; typing.classList.remove('show'); input.focus();
     }

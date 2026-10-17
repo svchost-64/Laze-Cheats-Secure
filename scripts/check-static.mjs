@@ -1,19 +1,42 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 const root=process.cwd();
-const all=[];
-function scan(folder){for(const f of fs.readdirSync(folder,{withFileTypes:true})){
-  if(['node_modules','.git','.vercel'].includes(f.name))continue;
-  const p=path.join(folder,f.name);if(f.isDirectory())scan(p);else if(/\.(?:html|js|json|css|md)$/i.test(f.name))all.push(p);
-}}
-scan(root);
-let failed=false;
-for(const p of all){const s=fs.readFileSync(p,'utf8');
- const patterns=[[/gsk_[A-Za-z0-9]{12,}/g,'Groq API key'],[/AIza[0-9A-Za-z_-]{30,}/g,'Google API key'],[/sk_(?:live|test)_[0-9A-Za-z]{20,}/g,'Secret key'],[/const\s+DEFAULT_PASS\s*=/g,'Hardcoded admin password'],[/script\.google\.com\/macros\/s\/\w{40,}\/exec/g,'Exposed Apps Script URL']];
- for(const [re,desc] of patterns) if(re.test(s)){console.error('FAIL:',desc,'in',path.relative(root,p));failed=true;}
+const files=[];
+function walk(dir){
+  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+    if(['.git','.vercel','node_modules','coverage','.next'].includes(entry.name))continue;
+    const loc=path.join(dir,entry.name);
+    if(entry.isDirectory())walk(loc);
+    else if(entry.isFile() && /(?:\.(?:html|js|json|css|md|mjs|yaml|yml|txt|example)|\.env\.example)$/i.test(entry.name))files.push(loc);
+  }
 }
-const html=fs.readFileSync('index.html','utf8');
-if(/<script>([\s\S]*?)<\/script>/.test(html)){console.error('FAIL: inline script');failed=true;}
-const keys=Object.keys(JSON.parse(fs.readFileSync('data.json','utf8')));
-if(!keys.includes('products')||!keys.includes('tutorials')){console.error('FAIL: catalog');failed=true;}
-if(failed)process.exit(1);console.log('OK: static scans, no obvious embedded secrets or inline scripts.');
+walk(root);
+const findings=[];
+const signatures=[
+  [/gsk_[A-Za-z0-9]{12,}/g,'Groq credential'],
+  [/AIza[0-9A-Za-z_-]{30,}/g,'Google credential'],
+  [/sk_(?:live|test)_[A-Za-z0-9]{20,}/g,'Payment credential'],
+  [/gh[pousr]_[A-Za-z0-9_]{25,}/g,'GitHub credential'],
+  [/AKIA[0-9A-Z]{16}/g,'AWS credential'],
+  [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g,'Private key'],
+  [/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{40,}\/exec/g,'Apps Script deployment URL'],
+  [/const\s+(?:DEFAULT_PASS|ADMIN_PASSWORD|API_SECRET)\s*=\s*['"][^'"]+['"]/g,'Hard-coded credential'],
+];
+for(const file of files){
+  // Vendored, minified libraries are immutable assets and are covered by SHA-256 manifest.
+  if(/(?:three|gsap)\.min\.js$/.test(file)||/\/(?:all|remixicon)\.min\.css$/.test(file))continue;
+  const data=fs.readFileSync(file,'utf8');
+  for(const [pattern,label] of signatures){
+    pattern.lastIndex=0;
+    if(pattern.test(data))findings.push(`${label}: ${path.relative(root,file)}`);
+  }
+  if(!/\.env\.example$/.test(file) && /(?:^|\n)\s*(?:GROQ_API_KEY|PAYPAL_CLIENT_SECRET|ADMIN_SESSION_SECRET|TURNSTILE_SECRET_KEY|APPS_SCRIPT_SHARED_SECRET|UPSTASH_REDIS_REST_TOKEN)\s*=\s*[^\s#]+/m.test(data))
+    findings.push(`Possible inline environment secret: ${path.relative(root,file)}`);
+}
+const scripts=[...fs.readFileSync('index.html','utf8').matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
+if(scripts.some(x=>x[1].trim()))findings.push('Inline script in index.html');
+const data=JSON.parse(fs.readFileSync('data.json','utf8'));
+if(!Array.isArray(data.products)||!Array.isArray(data.tutorials))findings.push('Invalid seed catalog');
+if(findings.length){for(const issue of findings)console.error('FAIL:',issue);process.exit(1)}
+console.log(`OK: ${files.length} text files checked; no known credential patterns`);

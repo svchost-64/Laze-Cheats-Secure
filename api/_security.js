@@ -28,8 +28,10 @@ export function sameOrigin(req) {
   if (!origin || typeof origin !== 'string')return false;
   try {
     const u=new URL(origin);
-    const current=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
-    return u.protocol==='https:' && u.host===current || (process.env.NODE_ENV!=='production' && u.protocol==='http:' && u.host===current);
+    // Compare against the routing host, not the caller-controlled forwarded host.
+    const host=String(req.headers.host||'').trim().toLowerCase();
+    if(!/^[a-z0-9.-]+(?::[0-9]{2,5})?$/.test(host))return false;
+    return u.host===host && (u.protocol==='https:' || (process.env.NODE_ENV!=='production' && u.protocol==='http:'));
   } catch {return false;}
 }
 export async function rate(req,bucket,limit,period='1 m',id=clientIP(req)){
@@ -55,6 +57,8 @@ export async function captcha(token,req){
   return allow.includes(String(valid.hostname||'').toLowerCase());
 }
 export function body(req,max=15000){
+  const claimed=Number(req.headers?.['content-length']);
+  if(Number.isFinite(claimed) && claimed>max)throw Error('Solicitud demasiado grande');
   const data=typeof req.body==='string'?JSON.parse(req.body):req.body;
   if(!data||typeof data!=='object'||Array.isArray(data)||Buffer.byteLength(JSON.stringify(data))>max)throw Error('Datos inválidos');
   return data;
