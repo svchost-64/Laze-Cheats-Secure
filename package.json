@@ -3,15 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": {"node": "22.x"},
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vercel dev",
     "check": "node scripts/check-static.mjs",
     "test": "node --test tests/*.test.mjs",
-    "password:hash": "node scripts/hash-password.mjs"
+    "password:hash": "node scripts/hash-password.mjs",
+    "build": "node scripts/build-public.mjs",
+    "test:output": "node scripts/check-output.mjs"
   },
   "dependencies": {
     "@upstash/ratelimit": "^2.0.0",
     "@upstash/redis": "^1.35.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
   }
 }

@@ -19,6 +19,8 @@ jobs:
       - run: npm install --ignore-scripts --no-fund
       - run: npm run check
       - run: npm test
+      - run: npm run build
+      - run: npm run test:output
       - name: Check syntax
         run: |
           find api js -name '*.js' -print0 | xargs -0 -n1 node --check

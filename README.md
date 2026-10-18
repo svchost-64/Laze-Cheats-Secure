@@ -127,3 +127,11 @@ Antes de habilitar reglas administradas de bloqueo XSS/SQLi/Bot o desafíos masi
 ### Limitaciones actuales
 
 El backend externo de Yape, las credenciales de proveedores, la base Redis y las cuentas de administración externas requieren configuración o verificación fuera del repositorio. **No se certifica ausencia absoluta de vulnerabilidades**. El escaneo de secretos identifica patrones habituales, pero no sustituye la rotación de credenciales ni una auditoría independiente de los servicios de terceros.
+
+## Limitaciones de inspección y distribución del frontend
+
+El navegador siempre recibe el HTML, CSS, JavaScript e imágenes necesarios para representar la tienda. Ningún script, bloqueo de clic derecho ni atajo de teclado impide de forma fiable abrir DevTools, ver las solicitudes de red, descargar recursos o reproducir un diseño. La restricción de menú contextual y algunos atajos son únicamente un elemento disuasorio y pueden ignorarse. **Nunca deben colocarse claves, contraseñas, licencias o verificaciones de pagos en el cliente**.
+
+El despliegue ejecuta `npm run build` y publica solo `dist/`, que contiene una lista expresa de recursos del frontend; JS y CSS se minifican sin archivos `.map`. Esto excluye del hosting el README, `data.json` semilla, pruebas, código API de servidor, configuraciones, manifiestos de integridad y scripts internos. Las funciones `api/` se implementan aparte y mantienen las validaciones de servidor. Revisar siempre la Preview con `npm run test:output`, `GET /`, `/api/catalog`, `/api/admin`, la carga de archivos estáticos y comprobaciones 404/403 de archivos internos.
+
+**El repositorio de GitHub continúa público hasta que su propietario cambie la visibilidad.** Para reducir la divulgación directa del código original, ir a GitHub → repositorio → Settings → General → Danger Zone → Change repository visibility → **Private**. No basta con minificar los archivos públicos: si el repositorio sigue público, el código legible y su historial siguen accesibles. Antes de cambiar la visibilidad, confirmar la integración de GitHub con Vercel y los permisos de despliegue del nuevo repositorio privado. Ninguno de estos controles evita la copia de los elementos visibles al comprador.
