@@ -1,20 +1,21 @@
-/* Cosmetic friction only: browser DevTools and network resources remain accessible. */
+/* Cosmetic deterrent only. Browser tools and downloaded files cannot be protected this way. */
 (() => {
-  document.addEventListener('contextmenu', event => {
-    if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    event.preventDefault();
-  });
-  document.addEventListener('dragstart', event => {
-    if (event.target.closest('img')) event.preventDefault();
-  });
-  document.addEventListener('keydown', event => {
-    if (event.altKey || event.metaKey) return;
-    const key = event.key.toLowerCase();
-    const inspectShortcut = event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(key);
-    const sourceShortcut = event.ctrlKey && !event.shiftKey && ['u', 's'].includes(key);
-    if (key === 'f12' || inspectShortcut || sourceShortcut) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  });
+  function deny(event) {
+    if (event.cancelable) event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+  // Capture before component listeners and include inputs/form controls.
+  window.addEventListener('contextmenu', deny, { capture: true });
+  window.addEventListener('dragstart', event => {
+    if (event.target?.closest?.('img')) deny(event);
+  }, { capture: true });
+  window.addEventListener('keydown', event => {
+    const key = String(event.key || '').toLowerCase();
+    const inspectorShortcut = key === 'f12'
+      || ((event.ctrlKey && event.shiftKey) || (event.metaKey && event.altKey))
+        && ['i', 'j', 'c', 'k'].includes(key);
+    const sourceShortcut = (event.ctrlKey || event.metaKey)
+      && !event.shiftKey && !event.altKey && ['u', 's'].includes(key);
+    if (inspectorShortcut || sourceShortcut) deny(event);
+  }, { capture: true });
 })();

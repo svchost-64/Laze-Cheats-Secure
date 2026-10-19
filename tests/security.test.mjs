@@ -87,3 +87,24 @@ test('all payment routes refuse to initiate payments without explicit configurat
   assert.equal(denied.statusCode,403);
   restore();
 });
+
+test('page deterrent captures context menus and common shortcuts',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const {runInNewContext}=await import('node:vm');
+  const handlers=new Map();
+  const pageWindow={addEventListener(name,listener,options){handlers.set(name,{listener,options})}};
+  runInNewContext(readFileSync(new URL('../js/inspection-deterrent.js',import.meta.url),'utf8'),{window:pageWindow});
+  const menu=handlers.get('contextmenu');
+  assert.equal(menu.options.capture,true);
+  const event={cancelable:true,prevented:false,stopped:false,preventDefault(){this.prevented=true},stopImmediatePropagation(){this.stopped=true}};
+  menu.listener(event);
+  assert.equal(event.prevented,true);
+  assert.equal(event.stopped,true);
+  const keydown=handlers.get('keydown');
+  const shortcut={...event,prevented:false,stopped:false,key:'F12',ctrlKey:false,shiftKey:false,metaKey:false,altKey:false};
+  keydown.listener(shortcut);
+  assert.equal(shortcut.prevented,true);
+  const regular={...shortcut,key:'a',prevented:false,stopped:false};
+  keydown.listener(regular);
+  assert.equal(regular.prevented,false);
+});
