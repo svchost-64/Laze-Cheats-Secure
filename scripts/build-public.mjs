@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir, rm, cp, copyFile } from 'node:fs/promises';
 import { transform } from 'esbuild';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,6 +37,8 @@ if (!html.includes('<script src="yape-pago.js"></script>')) {
   throw new Error('Expected checkout script not found in index.html');
 }
 html = html.replace(/<!--[\s\S]*?-->/g, '');
-html = html.replace('</body>', '<script defer src="js/inspection-deterrent.js"></script>\n</body>');
+const inspectionAsset = await readFile(out('js/inspection-deterrent.js'));
+const inspectionVersion = createHash('sha256').update(inspectionAsset).digest('hex').slice(0, 12);
+html = html.replace('</body>', `<script defer src="js/inspection-deterrent.js?v=${inspectionVersion}"></script>\n</body>`);
 await writeFile(out('index.html'), html, { mode: 0o644 });
 console.log('Created dist/ with only allowlisted public assets; no source maps.');
